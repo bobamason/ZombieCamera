@@ -1,0 +1,29 @@
+material {
+    name : "face material",
+    parameters : [
+            {
+               type : samplerExternal,
+               name : exTexture
+            }
+        ],
+        requires : [
+            uv0
+        ],
+    shadingModel : unlit,
+    blending : transparent,
+    //maskThreshold : 0.5,
+    transparency : twoPassesOneSide,
+}
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_exTexture, getUV0());
+        material.baseColor.rgb *= material.baseColor.a;
+        //material.baseColor.rgb = inverseTonemapSRGB(material.baseColor.rgb);
+        
+        //materialParams.
+        //material.roughness = 0.5;
+        //material.metallic = 0.0;
+        //material.reflectance = 0.3;
+    }
+}

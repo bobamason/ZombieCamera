@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                                                   xmlns:app="http://schemas.android.com/apk/res-auto"
+                                                   xmlns:tools="http://schemas.android.com/tools"
+                                                   android:layout_width="match_parent"
+                                                   android:layout_height="match_parent"
+                                                   tools:context=".ar.CameraFragment">
+
+    <fragment
+            android:layout_width="0dp"
+            android:layout_height="0dp" android:name="net.masonapps.zombiecamera.ar.WritingArFragment"
+            android:id="@+id/ar_fragment" app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+    <ImageView
+            android:src="@drawable/ic_photo_48dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="centerInside"
+            android:background="#000000"
+            android:id="@+id/imageCameraMode" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" android:visibility="gone"/>
+
+    <androidx.constraintlayout.widget.Guideline
+            android:orientation="vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/guideline2"
+            app:layout_constraintGuide_end="120dp"/>
+    <androidx.constraintlayout.widget.Guideline
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/guideline5" app:layout_constraintGuide_percent=".5"/>
+
+    <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:id="@+id/view"
+            android:background="@color/control_background"
+            app:layout_constraintStart_toStartOf="@+id/guideline2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+    <ImageButton
+            android:src="@drawable/ic_camera_btn"
+            android:layout_width="@dimen/camera_button_size"
+            android:layout_height="@dimen/camera_button_size"
+            android:id="@+id/cameraButton"
+            android:background="@drawable/ic_camera_btn_bg"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="@+id/guideline2"
+    />
+
+    <ImageButton
+            android:src="@drawable/ic_record_24dp"
+            android:layout_width="@dimen/camera_button_size"
+            android:layout_height="@dimen/camera_button_size"
+            android:id="@+id/recordButton"
+            android:visibility="gone"
+            android:background="@drawable/ic_record_btn_bg"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="@+id/guideline2"
+    />
+    
+    <ImageButton
+            android:src="@drawable/ic_photo_24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/videoToggleButton"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/toggle_photo_and_video"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/guideline2"
+            app:layout_constraintBottom_toTopOf="@+id/guideline5" android:layout_marginBottom="@dimen/center_guide_margin"/>
+    <ImageButton
+            android:src="@drawable/ic_settings_24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/settingsButton"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintStart_toStartOf="@+id/guideline2"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="@dimen/center_guide_margin"
+            app:layout_constraintTop_toBottomOf="@+id/guideline5"/>
+
+    <ImageView
+            android:layout_width="@dimen/camera_button_size"
+            android:layout_height="@dimen/camera_button_size"
+            android:id="@+id/thumbnailButton"
+            android:visibility="gone"
+            android:focusable="true"
+            android:clickable="true"
+            app:layout_constraintStart_toStartOf="@+id/guideline2"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" android:layout_marginTop="16dp"/>
+
+    <!--remove import button-->
+    <com.google.android.material.button.MaterialButton
+            android:text="Import"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/buttonImport" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp" app:layout_constraintBottom_toBottomOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

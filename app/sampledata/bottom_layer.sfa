@@ -1,0 +1,30 @@
+{
+  materials: [
+    {
+      name: 'DefaultMaterial',
+      parameters: [
+        {
+          exTexture: {
+            external_path: 'MISSING_PATH',
+          },
+        },
+        {
+          alphaMask: 'MISSING_PATH',
+        },
+      ],
+      source: 'sampledata/bottom_layer_material.mat',
+    },
+  ],
+  model: {
+    attributes: [
+      'Position',
+      'TexCoord',
+      'Orientation',
+    ],
+    collision: {},
+    file: 'sampledata/bottom_layer.obj',
+    name: 'bottom_layer',
+    recenter: 'root',
+  },
+  version: '0.54:2',
+}

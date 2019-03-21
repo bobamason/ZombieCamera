@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#006064</color>
+    <color name="colorAccent">#FFEA00</color>
+    <color name="colorRecordButton">#9E9E9E</color>
+    <color name="camera_button_pressed">#00B0FF</color>
+    <color name="camera_button_normal">#1976D2</color>
+    <color name="record_button_pressed">#FF9E80</color>
+    <color name="record_button_normal">#FFFFFF</color>
+    <color name="stop_button_pressed">#F44336</color>
+    <color name="stop_button_normal">#FF0000</color>
+    <color name="camera_button_background">#ffffff</color>
+    <color name="control_background">#99000000</color>
+</resources>
