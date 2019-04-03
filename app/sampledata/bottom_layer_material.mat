@@ -8,18 +8,7 @@ material {
             {
                type : sampler2d,
                name : lut
-            },
-            {
-               type : float4,
-               name : leftSide
-            },
-            {
-               type : float4,
-               name : rightSide
             }
-        ],
-        variables : [
-            texCoord
         ],
         requires : [
             uv0
@@ -28,37 +17,11 @@ material {
     blending : opaque
 }
 fragment {
+
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        //material.baseColor = texture(materialParams_texture, getUV0());
-        float3 c = texture(materialParams_exTexture, variable_texCoord.xy).rgb;
-        material.baseColor.rgb = c;
+        float3 c = texture(materialParams_exTexture, getUV0()).rgb;
+        material.baseColor.rgb = luminance(c) * float3( 0.1, 0.8, 0.3 );
         material.baseColor.a = 1.0;
-        //float t = 0.92;
-        //material.baseColor.rgb *= (lumen * t);
-        //material.baseColor.rgb += float3( 1.0, 1.0 , 1.0 ) * lumen * (1.0 -  t);
-        //material.baseColor *= texture(materialParams_alphaMask, getUV0()).r;
-        //materialParams.
-        //material.roughness = 0.5;
-        //material.metallic = 0.0;
-        //material.reflectance = 0.3;
-    }
-}
-
-vertex {
-    void materialVertex(inout MaterialVertexInputs material) {
-        float4 p = getWorldFromModelMatrix() * getPosition();
-        float4 clip = getClipFromWorldMatrix() * p;
-        clip.xyz = clip.xyz / clip.w;
-        float x1 = -1.0;
-        float x2 = 1.0;
-        float y1 = -1.0;
-        float y2 = 1.0;
-        float x = clip.x;
-        float y = clip.y;
-        float2 fxy1 = (x2 - x) / (x2 - x1) * materialParams.leftSide.xy + (x - x1) / (x2 - x1) * materialParams.rightSide.xy;
-        float2 fxy2 = (x2 - x) / (x2 - x1) * materialParams.leftSide.zw + (x - x1) / (x2 - x1) * materialParams.rightSide.zw;
-        float2 uv = (y2 - y) / (y2 - y1) * fxy1 + (y - y1) / (y2 - y1) * fxy2;
-        material.texCoord.xy = uv;
     }
 }

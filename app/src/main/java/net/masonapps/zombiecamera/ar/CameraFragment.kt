@@ -27,11 +27,11 @@ import androidx.lifecycle.ViewModelProviders
 import com.bumptech.glide.Glide
 import com.google.android.material.snackbar.Snackbar
 import com.google.ar.core.AugmentedFace
-import com.google.ar.core.Coordinates2d
 import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.FrameTime
 import com.google.ar.sceneform.Scene
+import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.rendering.CameraStream
 import com.google.ar.sceneform.rendering.ExternalTexture
 import com.google.ar.sceneform.rendering.Material
@@ -70,8 +70,10 @@ class CameraFragment : Fragment() {
         1f, -1f,
         1f, 1f
     )
+    private val cameraQuadNode: CameraQuadNode by lazy { CameraQuadNode() }
 
     private val transformedUvCoords = uvCoords.copyOf()
+    private val projectionMatrix = Matrix()
     private lateinit var videoRecorder: VideoRecorder
     private lateinit var viewModel: CameraViewModel
     private lateinit var buttonSounds: ButtonSounds
@@ -331,6 +333,10 @@ class CameraFragment : Fragment() {
                 }
 
                 cameraQuadMaterial = cameraQuadMaterialFuture.get()?.material
+                cameraQuadNode.material = cameraQuadMaterial
+                cameraQuadNode.setParent(scene)
+                setupCameraTexture()
+                
                 blendedFaceMaterial = blendedMaterialFuture.get()?.material
 
                 blendedFaceMaterial?.setExternalTexture("exTexture", faceOverlaySurface.externalTexture)
@@ -346,6 +352,8 @@ class CameraFragment : Fragment() {
 //            val cameraTextureIdField = arSceneView.javaClass.getDeclaredField("cameraTextureId")
 //            cameraTextureIdField.isAccessible = true
 //            val cameraTextureId = cameraTextureIdField.getInt(arSceneView)
+
+            arSceneView.arFrame?.let { cameraQuadNode.updateProjection(it) }
 
 
             val faceList: Collection<AugmentedFace> =
@@ -377,31 +385,6 @@ class CameraFragment : Fragment() {
     }
 
     private fun setupCameraTexture() {
-        arSceneView.arFrame?.transformCoordinates2d(
-            Coordinates2d.OPENGL_NORMALIZED_DEVICE_COORDINATES,
-            uvCoords,
-            Coordinates2d.TEXTURE_NORMALIZED,
-            transformedUvCoords
-        )
-//                    adjustCameraUvsForOpenGL()
-        cameraQuadMaterial?.setFloat4(
-            "leftSide",
-            transformedUvCoords[0],
-            transformedUvCoords[1],
-            transformedUvCoords[2],
-            transformedUvCoords[3]
-        )
-        cameraQuadMaterial?.setFloat4(
-            "rightSide",
-            transformedUvCoords[4],
-            transformedUvCoords[5],
-            transformedUvCoords[6],
-            transformedUvCoords[7]
-        )
-        Log.d(
-            "CameraFragment",
-            "uv transform\n${uvCoords.contentToString()} ->\n${transformedUvCoords.contentToString()}"
-        )
         val cameraTexture: ExternalTexture? = getCameraTexture()
         cameraTexture?.let { cameraQuadMaterial?.setExternalTexture("exTexture", it) }
     }
