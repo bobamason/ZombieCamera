@@ -16,17 +16,26 @@ class CameraQuadNode : Node() {
 
 
     private val quadNode: Node = Node()
-    private val vertices: ArrayList<Vertex> = ArrayList(4)
-    private val triangleIndices: ArrayList<Int> = arrayListOf(0, 1, 2, 0, 2, 3)
+    private val vertices: ArrayList<Vertex> = ArrayList(3)
+    //    private val triangleIndices: ArrayList<Int> = arrayListOf(0, 1, 2)
+    private val triangleIndices: ArrayList<Int> = arrayListOf(2, 1, 0)
     private val submeshes: ArrayList<RenderableDefinition.Submesh> = ArrayList()
     private val quadMeshDefinition: RenderableDefinition
+    private val view = Matrix()
     private val projection = Matrix()
-    private val inverseProjection = Matrix()
+    private val projectionView = Matrix()
+    private val inverseProjectionView = Matrix()
+    private val tmpVec = FloatArray(4)
+    private val resultVec = FloatArray(4)
+    private val vertexVectors = arrayOf(
+        Vector3(-1.0f, 1.0f, 1.0f),
+        Vector3(-1.0f, -3.0f, 1.0f),
+        Vector3(3.0f, 1.0f, 1.0f)
+    )
     private val uvCoords = floatArrayOf(
-        -1f, -1f,
-        1f, -1f,
-        1f, 1f,
-        -1f, 1f
+        0.0f, 0.0f,
+        0.0f, 2.0f,
+        2.0f, 0.0f
     )
 
     private val transformedUvCoords = uvCoords.copyOf()
@@ -44,34 +53,40 @@ class CameraQuadNode : Node() {
         worldPosition = Vector3.zero()
     }
 
-    fun updateProjection(frame: Frame) {
+    fun updateFrame(frame: Frame) {
         // Wait until the material is loaded.
         if (material == null) return
 
         val near = 0.1f
         val far = 5f
         frame.camera.getProjectionMatrix(projection.data, 0, near, far)
-        android.opengl.Matrix.invertM(inverseProjection.data, 0, projection.data, 0)
+        frame.camera.getViewMatrix(view.data, 0)
+        android.opengl.Matrix.multiplyMM(projectionView.data, 0, projection.data, 0, view.data, 0)
+        android.opengl.Matrix.invertM(inverseProjectionView.data, 0, projectionView.data, 0)
 
         frame.transformCoordinates2d(
-            Coordinates2d.OPENGL_NORMALIZED_DEVICE_COORDINATES,
+            Coordinates2d.VIEW_NORMALIZED,
             uvCoords,
             Coordinates2d.TEXTURE_NORMALIZED,
             transformedUvCoords
         )
 
+        for (i in 1 until 6 step 2) {
+            transformedUvCoords[i] = 1f - transformedUvCoords[i]
+        }
+
         val z = 0.75f
-        val p0 = inverseProjection.transformPoint(Vector3(-uvCoords[0], uvCoords[1], z))
+        val p0 = inverseProjectionView.transformPoint(vertexVectors[0])
         val uv0 = Vertex.UvCoordinate(transformedUvCoords[0], transformedUvCoords[1])
 
-        val p1 = inverseProjection.transformPoint(Vector3(-uvCoords[2], uvCoords[3], z))
+        val p1 = inverseProjectionView.transformPoint(vertexVectors[1])
         val uv1 = Vertex.UvCoordinate(transformedUvCoords[2], transformedUvCoords[3])
 
-        val p2 = inverseProjection.transformPoint(Vector3(-uvCoords[4], uvCoords[5], z))
+        val p2 = inverseProjectionView.transformPoint(vertexVectors[2])
         val uv2 = Vertex.UvCoordinate(transformedUvCoords[4], transformedUvCoords[5])
 
-        val p3 = inverseProjection.transformPoint(Vector3(-uvCoords[6], uvCoords[7], z))
-        val uv3 = Vertex.UvCoordinate(transformedUvCoords[6], transformedUvCoords[7])
+//        val p3 = vertexVectors[2]
+//        val uv3 = Vertex.UvCoordinate(transformedUvCoords[6], transformedUvCoords[7])
 
 
 //        Log.d(javaClass.simpleName, "p0$p0, p1$p1, p2$p2, p3$p3")
@@ -81,7 +96,7 @@ class CameraQuadNode : Node() {
         vertices.add(Vertex.builder().setPosition(p0).setUvCoordinate(uv0).build())
         vertices.add(Vertex.builder().setPosition(p1).setUvCoordinate(uv1).build())
         vertices.add(Vertex.builder().setPosition(p2).setUvCoordinate(uv2).build())
-        vertices.add(Vertex.builder().setPosition(p3).setUvCoordinate(uv3).build())
+//        vertices.add(Vertex.builder().setPosition(p3).setUvCoordinate(uv3).build())
 
         updateMesh()
     }

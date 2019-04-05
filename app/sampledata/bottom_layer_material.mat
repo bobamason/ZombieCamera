@@ -3,11 +3,15 @@ material {
     parameters : [
             {
                type : samplerExternal,
-               name : exTexture
+               name : cameraTexture
             },
             {
                type : sampler2d,
                name : lut
+            },
+            {
+               type : float,
+               name : lutResolution
             }
         ],
         requires : [
@@ -20,8 +24,12 @@ fragment {
 
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        float3 c = texture(materialParams_exTexture, getUV0()).rgb;
-        material.baseColor.rgb = luminance(c) * float3( 0.1, 0.8, 0.3 );
-        material.baseColor.a = 1.0;
+        float3 inColor = texture(materialParams_cameraTexture, getUV0()).rgb;
+        float s = materialParams.lutResolution;
+        float3 c = (s - 1.0) / s * inColor + float3(1.0 / (2.0 * s));
+        float offset = floor(c.b * (s - 1.0) + 0.125 ) / s;
+        float u = c.r / s + offset;
+        float2 uv = float2(u, c.g);
+        material.baseColor = texture(materialParams_lut, uv);
     }
 }

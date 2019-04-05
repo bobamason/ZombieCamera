@@ -32,10 +32,7 @@ import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.FrameTime
 import com.google.ar.sceneform.Scene
 import com.google.ar.sceneform.math.Matrix
-import com.google.ar.sceneform.rendering.CameraStream
-import com.google.ar.sceneform.rendering.ExternalTexture
-import com.google.ar.sceneform.rendering.Material
-import com.google.ar.sceneform.rendering.ModelRenderable
+import com.google.ar.sceneform.rendering.*
 import kotlinx.android.synthetic.main.fragment_camera.*
 import net.masonapps.zombiecamera.Assets
 import net.masonapps.zombiecamera.R
@@ -325,7 +322,19 @@ class CameraFragment : Fragment() {
             }
             .build()
 
-        CompletableFuture.allOf(cameraQuadMaterialFuture, blendedMaterialFuture)
+        val lutFuture = Texture.builder()
+            .setSampler(
+                Texture.Sampler
+                    .builder()
+                    .setMinFilter(Texture.Sampler.MinFilter.LINEAR)
+                    .setMagFilter(Texture.Sampler.MagFilter.LINEAR)
+                    .setWrapMode(Texture.Sampler.WrapMode.CLAMP_TO_EDGE)
+                    .build()
+            )
+            .setSource(ctx, R.raw.saw3d16)
+            .build()
+
+        CompletableFuture.allOf(cameraQuadMaterialFuture, blendedMaterialFuture, lutFuture)
             .handle { _, throwable ->
                 if (throwable != null) {
                     Log.e("CameraFragment", "failed to load material ${throwable.localizedMessage}")
@@ -333,10 +342,16 @@ class CameraFragment : Fragment() {
                 }
 
                 cameraQuadMaterial = cameraQuadMaterialFuture.get()?.material
+                lutFuture.get()?.let { cameraQuadMaterial?.setTexture("lut", it) }
+                cameraQuadMaterial?.setFloat("lutResolution", 16f)
+
+//                cameraQuadMaterial?.let { getCameraStream()?.setCameraMaterial(it)}
+//                setupCameraTexture()
+                
                 cameraQuadNode.material = cameraQuadMaterial
                 cameraQuadNode.setParent(scene)
                 setupCameraTexture()
-                
+
                 blendedFaceMaterial = blendedMaterialFuture.get()?.material
 
                 blendedFaceMaterial?.setExternalTexture("exTexture", faceOverlaySurface.externalTexture)
@@ -353,7 +368,7 @@ class CameraFragment : Fragment() {
 //            cameraTextureIdField.isAccessible = true
 //            val cameraTextureId = cameraTextureIdField.getInt(arSceneView)
 
-            arSceneView.arFrame?.let { cameraQuadNode.updateProjection(it) }
+            arSceneView.arFrame?.let { cameraQuadNode.updateFrame(it) }
 
 
             val faceList: Collection<AugmentedFace> =
@@ -386,18 +401,22 @@ class CameraFragment : Fragment() {
 
     private fun setupCameraTexture() {
         val cameraTexture: ExternalTexture? = getCameraTexture()
-        cameraTexture?.let { cameraQuadMaterial?.setExternalTexture("exTexture", it) }
+        cameraTexture?.let { cameraQuadMaterial?.setExternalTexture("cameraTexture", it) }
     }
 
-    private fun getCameraTexture(): ExternalTexture? {
+    private fun getCameraStream(): CameraStream? {
         val cameraStreamField = arSceneView.javaClass.getDeclaredField(FIELD_CAMERA_STREAM)
         cameraStreamField.isAccessible = true
-        val cameraStream: CameraStream? = cameraStreamField.get(arSceneView) as CameraStream
+        return cameraStreamField.get(arSceneView) as CameraStream
+    }
+
+
+    private fun getCameraTexture(): ExternalTexture? {
+        val cameraStream = getCameraStream()
         val cameraTextureField = cameraStream?.javaClass?.getDeclaredField(FIELD_CAMERA_TEXTURE)
         cameraTextureField?.apply { isAccessible = true }
         return cameraTextureField?.get(cameraStream) as ExternalTexture
     }
-
     private fun showFaceChooserSheet() {
         childFragmentManager.apply {
             val ft = beginTransaction()
