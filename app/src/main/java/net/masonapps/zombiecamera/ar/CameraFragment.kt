@@ -306,7 +306,7 @@ class CameraFragment : Fragment() {
     private fun loadMaterials() {
         val ctx = context!!
         faceOverlaySurface = FaceOverlaySurface(ctx)
-        faceOverlaySurface.eyeAsset = Assets.defaultEye
+//        faceOverlaySurface.eyeAsset = Assets.defaultEye
         faceOverlaySurface.skinAsset = Assets.defaultSkin
         faceOverlaySurface.updateSurfaceTexture()
 
@@ -331,7 +331,7 @@ class CameraFragment : Fragment() {
                     .setWrapMode(Texture.Sampler.WrapMode.CLAMP_TO_EDGE)
                     .build()
             )
-            .setSource(ctx, R.raw.saw3d16)
+            .setSource(ctx, Assets.LUT_RES_ID)
             .build()
 
         CompletableFuture.allOf(cameraQuadMaterialFuture, blendedMaterialFuture, lutFuture)
@@ -342,7 +342,8 @@ class CameraFragment : Fragment() {
                 }
 
                 cameraQuadMaterial = cameraQuadMaterialFuture.get()?.material
-                lutFuture.get()?.let { cameraQuadMaterial?.setTexture("lut", it) }
+                val lut = lutFuture.get()
+                lut?.let { cameraQuadMaterial?.setTexture("lut", it) }
                 cameraQuadMaterial?.setFloat("lutResolution", 16f)
 
 //                cameraQuadMaterial?.let { getCameraStream()?.setCameraMaterial(it)}
@@ -353,6 +354,8 @@ class CameraFragment : Fragment() {
                 setupCameraTexture()
 
                 blendedFaceMaterial = blendedMaterialFuture.get()?.material
+                lut?.let { blendedFaceMaterial?.setTexture("lut", it) }
+                blendedFaceMaterial?.setFloat("lutResolution", 16f)
 
                 blendedFaceMaterial?.setExternalTexture("exTexture", faceOverlaySurface.externalTexture)
 

@@ -8,7 +8,8 @@ open class BaseAsset(val name: String, val previewResId: Int){
 class TextureAsset(name: String, previewResId: Int, val textureResId: Int) : BaseAsset(name, previewResId)
 
 object Assets {
-    
+
+    const val LUT_RES_ID = R.raw.saw3d16
     const val BLENDED_MATERIAL = "sceneform_face_mesh.sfb"
     const val CAMERA_QUAD_MATERIAL = "bottom_layer.sfb"
     
@@ -21,6 +22,7 @@ object Assets {
     )
     
     val skinList: Array<TextureAsset> = arrayOf(
+        TextureAsset("scars 1", R.drawable.ic_placeholder, R.raw.skin_scars1),
         TextureAsset("wounds 1", R.drawable.ic_placeholder, R.raw.wounds_1)
     )
     

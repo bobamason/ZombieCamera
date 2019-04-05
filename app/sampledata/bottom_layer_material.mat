@@ -27,9 +27,12 @@ fragment {
         float3 inColor = texture(materialParams_cameraTexture, getUV0()).rgb;
         float s = materialParams.lutResolution;
         float3 c = (s - 1.0) / s * inColor + float3(1.0 / (2.0 * s));
-        float offset = floor(c.b * (s - 1.0) + 0.125 ) / s;
-        float u = c.r / s + offset;
-        float2 uv = float2(u, c.g);
-        material.baseColor = texture(materialParams_lut, uv);
+        float column = c.b * (s - 1.0);
+        float u1 = c.r / s + floor(column) / s;
+        float u2 = c.r / s + ceil(column) / s;
+        float v = c.g;
+        float4 c1 = texture(materialParams_lut, float2(u1, v));
+        float4 c2 = texture(materialParams_lut, float2(u2, v));
+        material.baseColor = mix(c1, c2, fract(column));
     }
 }
