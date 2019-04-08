@@ -373,7 +373,9 @@ class CameraFragment : Fragment() {
                     .setWrapMode(Texture.Sampler.WrapMode.CLAMP_TO_EDGE)
                     .build()
             )
-            .setSource(ctx, Assets.LUT_RES_ID)
+            .setSource {
+                ctx.assets.open(Assets.DEFAULT_LUT)
+            }
             .build()
 
         CompletableFuture.allOf(cameraQuadMaterialFuture, blendedMaterialFuture, lutFuture)
