@@ -47,7 +47,7 @@ class FaceOverlaySurface(private val context: Context) {
 
     private fun drawToCanvas(canvas: Canvas, rect: RectF, asset: TextureAsset?) {
         if (asset == null) return
-        val bitmap = BitmapFactory.decodeResource(context.resources, asset.textureResId)
+        val bitmap = context.assets.open(asset.assetPath).use { BitmapFactory.decodeStream(it) }
         canvas.drawBitmap(bitmap, null, rect, bitmapPaint)
         bitmap.recycle()
     }

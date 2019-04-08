@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.CamcorderProfile
@@ -12,6 +13,7 @@ import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.preference.PreferenceManager
 import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
@@ -21,6 +23,7 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -91,6 +94,7 @@ class CameraFragment : Fragment() {
 
         arSceneView = arFragment.arSceneView
         scene = arSceneView.scene
+        faceOverlaySurface = FaceOverlaySurface(context!!)
 
         videoRecorder = VideoRecorder()
         val orientation = resources.configuration.orientation
@@ -101,6 +105,52 @@ class CameraFragment : Fragment() {
             showFaceChooserSheet()
         }
 
+        setupCameraButtons(arFragment)
+
+        viewModel.recentThumbnailUri.observe(viewLifecycleOwner, Observer { uri ->
+            if (uri != null) {
+                thumbnailButton.visibility = View.VISIBLE
+                thumbnailButton.setImageDrawable(null)
+                val context = context ?: return@Observer
+                val contentResolver = context.contentResolver
+                val type = contentResolver.getType(uri)
+                when {
+                    type == null -> return@Observer
+                    type.contains("image", true) -> {
+                        Glide.with(context)
+                            .load(uri)
+                            .into(thumbnailButton)
+                    }
+                    type.contains("video", true) -> {
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(context, uri)
+                        val bitmap = retriever.getFrameAtTime(-1)
+                        Glide.with(context)
+                            .load(bitmap)
+                            .into(thumbnailButton)
+                    }
+                }
+            } else {
+                thumbnailButton.visibility = View.GONE
+            }
+        })
+
+        buttonImport.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            context?.packageManager?.resolveActivity(intent, PackageManager.MATCH_ALL)?.also {
+                startActivityForResult(intent, RC_IMAGE)
+            }
+        }
+
+        setupFaceTexturePreferences()
+
+
+        loadMaterials()
+        setupScene()
+    }
+
+    private fun setupCameraButtons(arFragment: WritingArFragment) {
         cameraButton.setOnClickListener { v ->
             if (!arFragment.hasWritePermission()) {
                 arFragment.launchPermissionSettings()
@@ -180,45 +230,41 @@ class CameraFragment : Fragment() {
             }
             animateCameraMode()
         })
+    }
 
-        viewModel.recentThumbnailUri.observe(viewLifecycleOwner, Observer { uri ->
-            if (uri != null) {
-                thumbnailButton.visibility = View.VISIBLE
-                thumbnailButton.setImageDrawable(null)
-                val context = context ?: return@Observer
-                val contentResolver = context.contentResolver
-                val type = contentResolver.getType(uri)
-                when {
-                    type == null -> return@Observer
-                    type.contains("image", true) -> {
-                        Glide.with(context)
-                            .load(uri)
-                            .into(thumbnailButton)
-                    }
-                    type.contains("video", true) -> {
-                        val retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(context, uri)
-                        val bitmap = retriever.getFrameAtTime(-1)
-                        Glide.with(context)
-                            .load(bitmap)
-                            .into(thumbnailButton)
-                    }
-                }
-            } else {
-                thumbnailButton.visibility = View.GONE
-            }
+    private fun setupFaceTexturePreferences() {
+        viewModel.eyesAsset.observe(viewLifecycleOwner, Observer { asset ->
+            Log.d("CameraFragment", "eye path = ${asset?.assetPath}")
+            faceOverlaySurface.eyeAsset = asset
+            faceOverlaySurface.updateSurfaceTexture()
+            saveToPreferences { it.putString(Assets.KEY_EYE, asset?.assetPath ?: Assets.PATH_NONE) }
         })
 
-        buttonImport.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            context?.packageManager?.resolveActivity(intent, PackageManager.MATCH_ALL)?.also {
-                startActivityForResult(intent, RC_IMAGE)
-            }
-        }
+        viewModel.mouthAsset.observe(viewLifecycleOwner, Observer { asset ->
+            Log.d("CameraFragment", "mouth path = ${asset?.assetPath}")
+            faceOverlaySurface.mouthAsset = asset
+            faceOverlaySurface.updateSurfaceTexture()
+            saveToPreferences { it.putString(Assets.KEY_MOUTH, asset?.assetPath ?: Assets.PATH_NONE) }
+        })
 
-        loadMaterials()
-        setupScene()
+        viewModel.skinAsset.observe(viewLifecycleOwner, Observer { asset ->
+            Log.d("CameraFragment", "skin path = ${asset?.assetPath}")
+            faceOverlaySurface.skinAsset = asset
+            faceOverlaySurface.updateSurfaceTexture()
+            saveToPreferences { it.putString(Assets.KEY_SKIN, asset?.assetPath ?: Assets.PATH_NONE) }
+        })
+
+        context?.also { ctx ->
+            val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+            val eyePath = prefs.getString(Assets.KEY_EYE, Assets.DEFAULT_EYE)
+            Assets.getEyeList(ctx.assets).find { it.assetPath == eyePath }?.let { viewModel.setEyesAsset(it) }
+
+            val mouthPath = prefs.getString(Assets.KEY_MOUTH, Assets.DEFAULT_MOUTH)
+            Assets.getMouthList(ctx.assets).find { it.assetPath == mouthPath }?.let { viewModel.setMouthAsset(it) }
+
+            val skinPath = prefs.getString(Assets.KEY_SKIN, Assets.DEFAULT_SKIN)
+            Assets.getSkinList(ctx.assets).find { it.assetPath == skinPath }?.let { viewModel.setSkinAsset(it) }
+        }
     }
 
 //    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -305,10 +351,6 @@ class CameraFragment : Fragment() {
 
     private fun loadMaterials() {
         val ctx = context!!
-        faceOverlaySurface = FaceOverlaySurface(ctx)
-//        faceOverlaySurface.eyeAsset = Assets.defaultEye
-        faceOverlaySurface.skinAsset = Assets.defaultSkin
-        faceOverlaySurface.updateSurfaceTexture()
 
         val cameraQuadMaterialFuture = ModelRenderable.builder()
             .setSource(ctx) {
@@ -348,7 +390,7 @@ class CameraFragment : Fragment() {
 
 //                cameraQuadMaterial?.let { getCameraStream()?.setCameraMaterial(it)}
 //                setupCameraTexture()
-                
+
                 cameraQuadNode.material = cameraQuadMaterial
                 cameraQuadNode.setParent(scene)
                 setupCameraTexture()
@@ -402,6 +444,12 @@ class CameraFragment : Fragment() {
         }
     }
 
+    private inline fun saveToPreferences(action: (SharedPreferences.Editor) -> Unit) {
+        context?.also {
+            PreferenceManager.getDefaultSharedPreferences(it).edit(false, action)
+        }
+    }
+
     private fun setupCameraTexture() {
         val cameraTexture: ExternalTexture? = getCameraTexture()
         cameraTexture?.let { cameraQuadMaterial?.setExternalTexture("cameraTexture", it) }
@@ -420,6 +468,7 @@ class CameraFragment : Fragment() {
         cameraTextureField?.apply { isAccessible = true }
         return cameraTextureField?.get(cameraStream) as ExternalTexture
     }
+
     private fun showFaceChooserSheet() {
         childFragmentManager.apply {
             val ft = beginTransaction()

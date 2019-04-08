@@ -39,8 +39,8 @@ class FaceChooserFragment : BottomSheetDialogFragment() {
         if(view is RecyclerView){
             view.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
             view.addItemDecoration(DividerItemDecoration(context, RecyclerView.HORIZONTAL))
-            val adapter = AssetAdapter(Assets.eyeList.toList()){
-//                viewModel.setSelectedFace(it)
+            val adapter = AssetAdapter(Assets.getSkinList(context!!.assets)) {
+                viewModel.setSkinAsset(it)
             }
             view.adapter = adapter
 //            viewModel.selectedFace.value?.let{adapter.setSelectedItem(it)}
