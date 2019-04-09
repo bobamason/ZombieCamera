@@ -22,85 +22,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" android:visibility="gone"/>
-
-    <androidx.constraintlayout.widget.Guideline
-            android:orientation="horizontal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/guideline"
-            app:layout_constraintGuide_end="120dp"/>
-    <androidx.constraintlayout.widget.Guideline
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/guideline4" app:layout_constraintGuide_percent=".5"/>
-    
-    <View
+    <FrameLayout
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:id="@+id/view"
-            android:background="@color/control_background"
+            android:layout_height="wrap_content"
+            android:id="@+id/controlsContainer"
+            app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/guideline"/>
+    />
 
-    <ImageButton
-            android:src="@drawable/ic_camera_btn"
-            android:layout_width="@dimen/camera_button_size"
-            android:layout_height="@dimen/camera_button_size"
-            android:id="@+id/cameraButton"
-            android:background="@drawable/ic_camera_btn_bg"
-            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/guideline"/>
-
-    <ImageButton
-            android:src="@drawable/ic_record_24dp"
-            android:layout_width="@dimen/camera_button_size"
-            android:layout_height="@dimen/camera_button_size"
-            android:visibility="gone"
-            android:id="@+id/recordButton"
-            android:background="@drawable/ic_record_btn_bg"
-            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/guideline"/>
-    
-    <ImageButton
-            android:src="@drawable/ic_photo_24dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/videoToggleButton"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/toggle_photo_and_video"
-            app:layout_constraintStart_toEndOf="@+id/guideline4" android:layout_marginStart="@dimen/center_guide_margin"
-            app:layout_constraintTop_toTopOf="@+id/guideline"
-            app:layout_constraintBottom_toBottomOf="parent"/>
-    <ImageButton
-            android:src="@drawable/ic_settings_24dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/settingsButton"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            app:layout_constraintTop_toTopOf="@+id/guideline"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/guideline4" android:layout_marginEnd="@dimen/center_guide_margin"/>
-
-    <ImageView
-            android:layout_width="@dimen/camera_button_size"
-            android:layout_height="@dimen/camera_button_size"
-            android:id="@+id/thumbnailButton"
-            android:visibility="gone"
-            android:focusable="true"
-            android:clickable="true"
-            app:layout_constraintTop_toTopOf="@+id/guideline"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="16dp"/>
-    
-    <!--remove import button-->
-    <com.google.android.material.button.MaterialButton
-            android:text="Import"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/buttonImport" app:layout_constraintStart_toStartOf="parent" android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp" app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

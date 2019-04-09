@@ -2,14 +2,10 @@ package net.masonapps.zombiecamera.ar
 
 
 import android.animation.ValueAnimator
-import android.content.ActivityNotFoundException
 import android.content.ContentValues
-import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.CamcorderProfile
-import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -27,22 +23,19 @@ import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import com.bumptech.glide.Glide
 import com.google.android.material.snackbar.Snackbar
 import com.google.ar.core.AugmentedFace
 import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.FrameTime
 import com.google.ar.sceneform.Scene
-import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.rendering.*
 import kotlinx.android.synthetic.main.fragment_camera.*
 import net.masonapps.zombiecamera.Assets
 import net.masonapps.zombiecamera.R
-import net.masonapps.zombiecamera.audio.ButtonSounds
 import net.masonapps.zombiecamera.io.BitmapUtils
 import net.masonapps.zombiecamera.io.ExternalStorage
-import net.masonapps.zombiecamera.settings.FaceChooserFragment
+import net.masonapps.zombiecamera.settings.AssetListFragment
 import net.masonapps.zombiecamera.videorecording.VideoRecorder
 import java.io.File
 import java.util.*
@@ -50,12 +43,14 @@ import java.util.concurrent.CompletableFuture
 import kotlin.collections.HashMap
 
 private const val FRAGMENT_FACES = "fragment-faces"
+private const val FRAGMENT_CONTROLS = "fragment-controls"
 private const val FIELD_CAMERA_STREAM = "cameraStream"
 private const val FIELD_CAMERA_TEXTURE = "cameraTexture"
 private const val RC_IMAGE = 222
 
 class CameraFragment : Fragment() {
 
+    private lateinit var arFragment: WritingArFragment
     private lateinit var arSceneView: ArSceneView
     private lateinit var scene: Scene
     private lateinit var faceOverlaySurface: FaceOverlaySurface
@@ -72,11 +67,8 @@ class CameraFragment : Fragment() {
     )
     private val cameraQuadNode: CameraQuadNode by lazy { CameraQuadNode() }
 
-    private val transformedUvCoords = uvCoords.copyOf()
-    private val projectionMatrix = Matrix()
-    private lateinit var videoRecorder: VideoRecorder
+    lateinit var videoRecorder: VideoRecorder
     private lateinit var viewModel: CameraViewModel
-    private lateinit var buttonSounds: ButtonSounds
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -87,10 +79,9 @@ class CameraFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProviders.of(activity!!).get(CameraViewModel::class.java)
-        buttonSounds = ButtonSounds()
+        viewModel = ViewModelProviders.of(this).get(CameraViewModel::class.java)
 
-        val arFragment = childFragmentManager.findFragmentById(R.id.ar_fragment) as WritingArFragment
+        arFragment = childFragmentManager.findFragmentById(R.id.ar_fragment) as WritingArFragment
 
         arSceneView = arFragment.arSceneView
         scene = arSceneView.scene
@@ -101,135 +92,13 @@ class CameraFragment : Fragment() {
         videoRecorder.setVideoQuality(CamcorderProfile.QUALITY_1080P, orientation)
         videoRecorder.setSceneView(arSceneView)
 
-        settingsButton.setOnClickListener {
-            showFaceChooserSheet()
-        }
-
-        setupCameraButtons(arFragment)
-
-        viewModel.recentThumbnailUri.observe(viewLifecycleOwner, Observer { uri ->
-            if (uri != null) {
-                thumbnailButton.visibility = View.VISIBLE
-                thumbnailButton.setImageDrawable(null)
-                val context = context ?: return@Observer
-                val contentResolver = context.contentResolver
-                val type = contentResolver.getType(uri)
-                when {
-                    type == null -> return@Observer
-                    type.contains("image", true) -> {
-                        Glide.with(context)
-                            .load(uri)
-                            .into(thumbnailButton)
-                    }
-                    type.contains("video", true) -> {
-                        val retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(context, uri)
-                        val bitmap = retriever.getFrameAtTime(-1)
-                        Glide.with(context)
-                            .load(bitmap)
-                            .into(thumbnailButton)
-                    }
-                }
-            } else {
-                thumbnailButton.visibility = View.GONE
-            }
-        })
-
-        buttonImport.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            context?.packageManager?.resolveActivity(intent, PackageManager.MATCH_ALL)?.also {
-                startActivityForResult(intent, RC_IMAGE)
-            }
-        }
+        showCameraControls()
 
         setupFaceTexturePreferences()
 
 
         loadMaterials()
         setupScene()
-    }
-
-    private fun setupCameraButtons(arFragment: WritingArFragment) {
-        cameraButton.setOnClickListener { v ->
-            if (!arFragment.hasWritePermission()) {
-                arFragment.launchPermissionSettings()
-                Snackbar.make(
-                    v,
-                    "Photo and video recording requires the WRITE EXTERNAL STORAGE permission.",
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
-            buttonSounds.playShutterClick()
-            takePhoto()
-        }
-
-        recordButton.setOnClickListener { v ->
-            if (!arFragment.hasWritePermission()) {
-                arFragment.launchPermissionSettings()
-                Snackbar.make(
-                    v,
-                    "Photo and video recording requires the WRITE EXTERNAL STORAGE permission.",
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
-            if (videoRecorder.isRecording) {
-                buttonSounds.playStopVideoRecording()
-                videoRecorder.stopRecordingVideo()
-                viewModel.setRecording(false)
-                videoRecorder.videoPath?.let { file -> saveVideo(file) }
-            } else {
-                val recording = videoRecorder.startRecordingVideo()
-                if (recording) buttonSounds.playStartVideoRecording()
-                viewModel.setRecording(recording)
-            }
-        }
-
-        videoToggleButton.setOnClickListener {
-            viewModel.toggleVideoEnabled()
-        }
-
-        thumbnailButton.setOnClickListener {
-            val uri = viewModel.recentThumbnailUri.value ?: return@setOnClickListener
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            try {
-                startActivity(intent)
-            } catch (e: ActivityNotFoundException) {
-                Snackbar.make(
-                    it,
-                    "Sorry the file cannot be opened.",
-                    Snackbar.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        viewModel.isRecording.observe(viewLifecycleOwner, Observer {
-            if (it) {
-                recordButton.setImageResource(R.drawable.ic_stop_36dp)
-                recordButton.setBackgroundResource(R.drawable.ic_stop_btn_bg)
-            } else {
-                recordButton.setImageResource(R.drawable.ic_record_24dp)
-                recordButton.setBackgroundResource(R.drawable.ic_record_btn_bg)
-            }
-        })
-        viewModel.isVideoEnabled.observe(viewLifecycleOwner, Observer {
-            if (it) {
-                videoToggleButton.setImageResource(R.drawable.ic_photo_24dp)
-                imageCameraMode.setImageResource(R.drawable.ic_video_48dp)
-                cameraButton.visibility = View.GONE
-                recordButton.visibility = View.VISIBLE
-            } else {
-                videoToggleButton.setImageResource(R.drawable.ic_video_24dp)
-                imageCameraMode.setImageResource(R.drawable.ic_photo_48dp)
-                cameraButton.visibility = View.VISIBLE
-                recordButton.visibility = View.GONE
-            }
-            animateCameraMode()
-        })
     }
 
     private fun setupFaceTexturePreferences() {
@@ -286,12 +155,12 @@ class CameraFragment : Fragment() {
         super.onPause()
     }
 
-    override fun onDestroy() {
-        buttonSounds.release()
-        super.onDestroy()
-    }
-
-    private fun animateCameraMode() {
+    fun animateCameraMode(isVideoEnabled: Boolean) {
+        if (isVideoEnabled)
+            imageCameraMode.setImageResource(R.drawable.ic_video_48dp)
+        else
+            imageCameraMode.setImageResource(R.drawable.ic_photo_48dp)
+        
         val animator = ValueAnimator.ofFloat(0f, 1f, 1f, 1f, 0f)
         animator.interpolator = LinearInterpolator()
         animator.duration = 600L
@@ -310,14 +179,14 @@ class CameraFragment : Fragment() {
         animator.start()
     }
 
-    private fun saveVideo(file: File) {
+    fun saveVideo(file: File) {
         val videoPath = file.absolutePath
         //                            Snackbar.make(v, "Video saved: $videoPath", Snackbar.LENGTH_SHORT).show()
         Log.d("CameraFragment", "Video saved: $videoPath")
 
         // Send  notification of updated content.
         val values = ContentValues()
-        values.put(MediaStore.Video.Media.TITLE, "Clown")
+        values.put(MediaStore.Video.Media.TITLE, "Zombie")
         values.put(MediaStore.Video.Media.DESCRIPTION, "")
         values.put(MediaStore.Video.Media.DATE_TAKEN, System.currentTimeMillis())
         values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
@@ -326,7 +195,7 @@ class CameraFragment : Fragment() {
         viewModel.setRecentThumbnailUri(uri)
     }
 
-    private fun takePhoto() {
+    fun takePhoto() {
         val bitmap = Bitmap.createBitmap(arSceneView.width, arSceneView.height, Bitmap.Config.ARGB_8888)
         val handlerThread = HandlerThread("PhotoThread")
         handlerThread.start()
@@ -347,6 +216,19 @@ class CameraFragment : Fragment() {
             }
             handlerThread.quitSafely()
         }, Handler(handlerThread.looper))
+    }
+
+    fun checkWritePermissions(): Boolean {
+        if (!arFragment.hasWritePermission()) {
+            arFragment.launchPermissionSettings()
+            Snackbar.make(
+                view!!,
+                "Photo and video recording requires the WRITE EXTERNAL STORAGE permission.",
+                Snackbar.LENGTH_LONG
+            ).show()
+            return false
+        }
+        return true
     }
 
     private fun loadMaterials() {
@@ -471,14 +353,28 @@ class CameraFragment : Fragment() {
         return cameraTextureField?.get(cameraStream) as ExternalTexture
     }
 
-    private fun showFaceChooserSheet() {
+    fun showCameraControls() {
+        childFragmentManager.apply {
+            val ft = beginTransaction()
+            val prev = findFragmentByTag(FRAGMENT_CONTROLS)
+            if (prev != null) {
+                ft.remove(prev)
+            }
+            ft.replace(R.id.controlsContainer, CameraControlsFragment.newInstance(), FRAGMENT_CONTROLS)
+            ft.commit()
+        }
+    }
+
+    fun showFaceChooserSheet() {
         childFragmentManager.apply {
             val ft = beginTransaction()
             val prev = findFragmentByTag(FRAGMENT_FACES)
             if (prev != null) {
                 ft.remove(prev)
             }
-            FaceChooserFragment.newInstance().show(ft, FRAGMENT_FACES)
+            ft.addToBackStack(FRAGMENT_FACES)
+            ft.replace(R.id.controlsContainer, AssetListFragment.newInstance(Assets.KEY_SKIN), FRAGMENT_FACES)
+            ft.commit()
         }
     }
 }
