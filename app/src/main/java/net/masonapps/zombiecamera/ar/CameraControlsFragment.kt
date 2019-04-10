@@ -37,7 +37,7 @@ class CameraControlsFragment : Fragment() {
 
         if (parentFragment !is CameraFragment) throw IllegalStateException("${CameraControlsFragment::class.java.name} must be a child fragment of ${CameraFragment::class.java.simpleName}")
 
-        cameraFragment = parentFragment!! as CameraFragment
+        cameraFragment = parentFragment as CameraFragment
         viewModel = ViewModelProviders.of(cameraFragment).get(CameraViewModel::class.java)
 
         settingsButton.setOnClickListener {

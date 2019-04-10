@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +17,8 @@ import net.masonapps.zombiecamera.R
  *
  */
 class AssetListFragment : Fragment() {
+
+    private lateinit var viewModel: ChooserViewModel
     
     companion object {
         private const val KEY_ASSET_TYPE = "asset-type"
@@ -36,6 +39,11 @@ class AssetListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        if (parentFragment !is ChooserFragment) throw IllegalStateException("${AssetListFragment::class.java.name} must be a child fragment of ${ChooserFragment::class.java.simpleName}")
+
+        val chooserFragment = parentFragment as ChooserFragment
+        viewModel = ViewModelProviders.of(chooserFragment).get(ChooserViewModel::class.java)
 
         if(view is RecyclerView){
             view.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
